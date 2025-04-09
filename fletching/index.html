@@ -40,7 +40,15 @@
         <button onclick="setMode('complete')">Fletching & Stringing</button>
         <button onclick="setMode('unstrung')">Unstrung</button>
         <button onclick="setMode('stringing')">Stringing</button>
-        <button onclick="setMode('arrows')">Arrows</button>
+        <button onclick="setMode('arrows')">Arrows/Bolts</button>
+
+        <div id="arrowSelection" style="display: none"><br>
+            <label for="arrowType">Complete/Incomplete:</label>
+            <select id="arrowType" onchange="calculateFletching()">
+                <option value="completeArrows">Complete</option>
+                <option value="incompleteArrows">Incomplete</option>
+            </select>
+        </div>
 
         <!-- Results Table -->
         <table id="resultsTable">
@@ -54,7 +62,6 @@
             </thead>
             <tbody></tbody>
         </table>
-        <p>*arrow experience includes every step of the way</p>
     </div>
     <script>
         let mode = 'complete';
@@ -106,6 +113,7 @@
         
         function setMode(newMode) {
             mode = newMode;
+            document.getElementById("arrowSelection").style.display = (mode === 'arrows') ? 'block' : 'none';
             calculateFletching();
         }
         
@@ -139,12 +147,27 @@
                 "Arrow Shaft": [5, 1],
                 "Headless Arrow": [20, 1],
                 "Bronze Arrows": [39.5, 1],
+                "Opal Bolts": [31, 11],
                 "Iron Arrows": [57.5, 15],
                 "Steel Arrows": [95, 30],
+                "Pearl Bolts": [64, 41],
                 "Mithril Arrows": [132.5, 45],
+                "Barbed Bolts": [95, 51],
                 "Adamant Arrows": [170, 60],
                 "Rune Arrows": [207.5, 75]
             };
+
+            const incomplete = {
+                "Headless Arrow": [15, 1],
+                "Bronze Arrowheads": [13, 1],
+                "Opal Bolttips": [15, 11],
+                "Iron Arrowheads": [25, 15],
+                "Steel Arrowheads": [50, 30],
+                "Pearl Bolttips": [32, 41],
+                "Mithril Arrowheads": [75, 45],
+                "Adamant Arrowheads": [100, 60],
+                "Rune Arrowheads": [125, 75]
+            }
             
             // Update progress bar
             const progressPercentage = ((currentXP / targetXP) * 100).toFixed(1);
@@ -158,8 +181,11 @@
             
             // Generate table based on option selected
             if (mode === 'arrows') {
-                for (let arrow in arrows) {
-                    let [xpPerAction, levelReq] = arrows[arrow];
+                const arrowType = document.getElementById("arrowType").value;
+                const arrowData = arrowType === "completeArrows" ? arrows : incomplete;
+
+                for (let arrow in arrowData) {
+                    let [xpPerAction, levelReq] = arrowData[arrow];
                     let count = Math.ceil(xpNeeded / xpPerAction);
                     
                     let row = document.createElement("tr");
