@@ -24,8 +24,9 @@
         <label>Agility Level:</label>
         <input type="number" id="agilityLevel" min="1" max="99" value="1"><br>
         <button onclick="calculateRestoreTime()">Calculate</button>
-        <h2>Time to Restore 1% Energy: <br><span id="restorePerPercent" class="gold-text"></span></h2>
-        <h2>Time to Restore to 100%: <br><span id="restoretime" class="gold-text"></span></h2>
+        <h3>Time to Restore 1% Energy: <br><span id="restorePerPercent" class="gold-text"></span></h3>
+        <h3>Time to Restore to 100%: <br><span id="restoreTime" class="gold-text"></span></h3>
+        <h3>~% Energy Restored per Minute: <span id="restoreOneMinute" class="gold-text"></span></h3>
         <br>
     </div>
     <script>
@@ -61,7 +62,14 @@
             const seconds = Math.floor(timeToRestoreInSeconds % 60);
             
             let restoreTime = `${minutes} minutes and ${seconds} seconds`;
-            document.getElementById("restoretime").textContent = restoreTime;
+            document.getElementById("restoreTime").textContent = restoreTime;
+
+            // Calculate percentage restored in 1 minute
+            const restorePerSecond = 1 / secondsPerPercent; // energy restored per second
+            const restoreInOneMinute = restorePerSecond * 60; // energy restored in 60 seconds
+
+            // Display the percentage restored in 1 minute
+            document.getElementById("restoreOneMinute").textContent = `${Math.min(restoreInOneMinute, 100).toFixed(0)}%`;
         }
     </script>
 </body>
