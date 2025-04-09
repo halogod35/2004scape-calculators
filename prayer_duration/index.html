@@ -8,7 +8,6 @@
         a { color: white; text-decoration: none; display: block; }
         body { text-align: center; background-color: black; color: white; font-family: Arial, sans-serif; }
         input, button, select { margin: 5px; font-size: 16px; }
-        p { color: gold; font-weight: bold; }
         .container { max-width: 522px; margin: 20px auto; }
         .gold-text { color: gold; font-weight: bold; }
         .prayer-grid { display: grid; grid-template-columns: repeat(3, 1fr); justify-content: center; align-items: center; max-width: 125px; margin: auto; gap: 10px; }
@@ -30,9 +29,17 @@
         <input type="number" id="prayerBonus" min="0" max="24" value="0">
         
         <button onclick="calculatePrayerDuration()">Calculate</button>
-        <br>
+        <br><br>
 
-        <p>Click on the prayers you want to activate:</p>
+        <div id="monasteryBonus">
+            <label for="monasteryAltar">Monastery Altar:</label>
+            <select id="monasteryAltar" onchange="calculatePrayerDuration()">
+                <option value="0">No</option>
+                <option value="2">Yes (+2 to prayer)</option>
+            </select>
+        </div>
+
+        <p class="gold-text">Click on the prayers you want to activate:</p>
         <div class="prayer-grid">
             <img src="thick_skin.png" class="prayer" data-drain="5" data-name="Thick Skin" title="Thick Skin: +5% Defense">
             <img src="burst_of_strength.png" class="prayer" data-drain="5" data-name="Burst of Strength" title="Burst of Strength: +5% Strength">
@@ -51,7 +58,7 @@
             <img src="protect_from_melee.png" class="prayer" data-drain="20" data-name="Protect from Melee" title="Protect from Melee: 100% protection from melee attacks">
         </div>
 
-        <p>Equipment</p>
+        <p class="gold-text">Equipment</p>
         <label>Necklace:</label>
         <select id="necklace">
             <option value="0">None</option>
@@ -92,9 +99,10 @@
         </select><br>
         <h2>Your prayer will last: <br><span id="prayerDuration" class="gold-text"></span></h2>
         <!-- Special message for Rapid Heal -->
-        <p><span id="rapidHealText" class="gold-text"></span></p>
-        <!-- Total HP Restored -->
-        <p><span id="totalHpRestoredText" class="gold-text"></span></p> 
+        <div id="rapidHealDiv" style="display: none">
+            <p>Rapid Heal HP restored: <span id="rapidHealText" class="gold-text"></span></p>
+            <p>Total HP restored: <span id="totalHpRestoredText" class="gold-text"></span></p>
+        </div>
     </div>
     
     <script>
@@ -135,7 +143,6 @@
             img.addEventListener("click", function() {
                 const prayerName = this.dataset.name;
                 const drainValue = parseFloat(this.dataset.drain);
-
                 if (selectedPrayers.some(prayer => prayer.name === prayerName)) {
                     // Remove if already selected
                     selectedPrayers = selectedPrayers.filter(prayer => prayer.name !== prayerName);
@@ -145,16 +152,34 @@
                     selectedPrayers.push({ name: prayerName, drain: drainValue });
                     this.classList.add("active");
                 }
-
                 calculatePrayerDuration();
             });
         });
 
         function calculatePrayerDuration() {
             const prayerBonus = parseInt(document.getElementById("prayerBonus").value);
-            const prayerLevel = parseInt(document.getElementById("prayerLevel").value);
+            const basePrayerLevel = parseInt(document.getElementById("prayerLevel").value);
+            const monasteryBonus = parseInt(document.getElementById("monasteryAltar").value);
+            const effectivePrayerLevel = basePrayerLevel + monasteryBonus;
             const totalDrainRate = selectedPrayers.reduce((sum, p) => sum + p.drain, 0);
             
+            // If Rapid Heal is selected, calculate HP restored
+            const rapidHealSelected = selectedPrayers.some(prayer => prayer.name === "Rapid Heal");
+            const rapidDiv = document.getElementById("rapidHealDiv");
+            const rapidHealText = document.getElementById("rapidHealText");
+            const totalHpRestoredText = document.getElementById("totalHpRestoredText");
+
+            if (rapidHealSelected) {
+                // Show container
+                rapidDiv.style.display = 'block';
+            } else {
+                // Hide the message if Rapid Heal is deselected
+                rapidDiv.style.display = 'none';
+                rapidHealText.textContent = '';
+                totalHpRestoredText.textContent = '';
+            }
+
+            // Exit early if no prayers are selected
             if (totalDrainRate === 0) {
                 document.getElementById("prayerDuration").textContent = "";
                 return;
@@ -164,7 +189,7 @@
             const drainRatePerSecond = totalDrainRate / 60;
             
             // Calculate base duration (seconds total)
-            let baseDuration = prayerLevel / drainRatePerSecond;
+            let baseDuration = effectivePrayerLevel / drainRatePerSecond;
             
             // Apply prayer bonus effect (each +1 increases duration by 3.333%)
             let modifiedDuration = baseDuration * (1 + (prayerBonus * 0.0333));
@@ -172,23 +197,16 @@
             // Convert seconds into minutes and seconds format
             const minutes = Math.floor(modifiedDuration / 60);
             const seconds = Math.round(modifiedDuration % 60);
+
             document.getElementById("prayerDuration").textContent = minutes > 0 
                 ? `${minutes} minute and ${seconds} seconds`
                 : `${seconds} seconds`;
 
-            // If Rapid Heal is selected, calculate HP restored
-            const rapidHealSelected = selectedPrayers.some(prayer => Math.abs(prayer.drain - 3.3333) < 0.0001);
-
             if (rapidHealSelected) {
-                // 1 HP for every 30 seconds
-                const hpRestored = (modifiedDuration / 30);
-                document.getElementById("rapidHealText").textContent = `Rapid Heal HP restored: ${hpRestored.toFixed(0)}`;
                 // Calculate and display total HP restored
-                document.getElementById("totalHpRestoredText").textContent = `Total HP restored: ${(hpRestored * 2).toFixed(0)}`;
-            } else {
-                // Clear the message if Rapid Heal is deselected
-                document.getElementById("rapidHealText").textContent = "";
-                document.getElementById("totalHpRestoredText").textContent = "";
+                const hpRestored = (modifiedDuration / 30); // 1 HP for every 30 seconds
+                rapidHealText.textContent = `${hpRestored.toFixed(0)}`;
+                totalHpRestoredText.textContent = `${(hpRestored * 2).toFixed(0)}`;
             }
         }
         
