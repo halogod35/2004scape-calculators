@@ -40,13 +40,25 @@
         </div>
 
         <!-- Results Table -->
-        <table id="resultsTable">
+        <table id="courseTable">
             <thead>
                 <tr>
                     <th>Level</th>
                     <th>Course</th>
                     <th>XP per Lap</th>
                     <th>Laps Needed</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+
+        <table id="shortcutTable">
+            <thead>
+                <tr>
+                    <th>Level</th>
+                    <th>Shortcut</th>
+                    <th>XP per Action</th>
+                    <th>Actions Needed</th>
                 </tr>
             </thead>
             <tbody></tbody>
@@ -113,9 +125,17 @@
             const xpNeeded = targetXP - currentXP;
             const courses = [
                 { name: "Gnome Stronghold", xp: 86.5, level: 1 },
+                { name: "Barbarian Outpost", xp: 139.5, level: 35 },
+                { name: "Wilderness", xp: 601.4, level: 52 }
+            ];
+            const shortcuts = [
+                { name: "A wooden log (Karamja)", xp: 4, level: 1 },
+                { name: "Crumbling wall (Falador)", xp: 0.5, level: 5 },
+                { name: "Climbing rocks (Yanille)", xp: 25, level: 5 },
+                { name: "Ropeswing (Brimhaven)", xp: 3, level: 10 },
+                { name: "Monkeybars (Edgeville Dungeon)", xp: 20, level: 15 },
                 { name: "Log balance (Coal Trucks)", xp: 8.5, level: 20 },
-                { name: "Barbarian Outpost", xp: 152.5, level: 35 },
-                { name: "Wilderness", xp: 571.4, level: 52 }
+                { name: "Stepping stones (Karamja)", xp: 3, level: 30 }
             ];
 
             // Update progress bar
@@ -123,12 +143,17 @@
             const progressBar = document.getElementById("progressBar");
             progressBar.style.width = `${progressPercentage}%`;
             progressBar.textContent = `${progressPercentage}%`;
-            const tableBody = document.querySelector("#resultsTable tbody");
+            const tableBody = document.querySelector("#courseTable tbody");
+
+            // Get both table bodies
+            const courseTableBody = document.querySelector("#courseTable tbody");
+            const shortcutTableBody = document.querySelector("#shortcutTable tbody");
 
             // Clear previous results
-            tableBody.innerHTML = ""; 
+            courseTableBody.innerHTML = ""; 
+            shortcutTableBody.innerHTML = "";
 
-            // Generate table
+            // Generate course table
             for (let course of courses) {
                 let lapCount = Math.ceil(xpNeeded / course.xp);
                 
@@ -139,7 +164,21 @@
                     <td>${course.xp}</td>
                     <td>${formatNumber(lapCount)}</td>
                 `;
-                tableBody.appendChild(row);
+                courseTableBody.appendChild(row);
+            }
+
+            // Generate shortcut table
+            for (let shortcut of shortcuts) {
+                let lapCount = Math.ceil(xpNeeded / shortcut.xp);
+                
+                let row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${shortcut.level}</td>
+                    <td><img src="${shortcut.name.toLowerCase().replace(/\s+/g, "_")}.png" alt="${shortcut.name}"> ${shortcut.name}</td>
+                    <td>${shortcut.xp}</td>
+                    <td>${formatNumber(lapCount)}</td>
+                `;
+                shortcutTableBody.appendChild(row);
             }
         }
     </script>
