@@ -19,9 +19,7 @@
     <a href="../index.html">[Home]</a><br>
     <div>
         <button onclick="switchCombat('melee'); calculateMaxHit()">Melee</button>
-        <!-- disabled till I figure it out
         <button onclick="switchCombat('ranged'); calculateMaxHit()">Ranged</button>
-        -->
         <button onclick="switchCombat('magic'); calculateMaxHit()">Magic</button>
     </div>
     <div class="container">
@@ -165,16 +163,21 @@
             <p>Ranged Max Hit</p>
             <label>Ranged Level:</label>
             <input type="number" id="rangedLevel" min="1" max="99" value="1">
-            <label>Ranged Bonus:</label>
+            <label>Ranged Strength Bonus:</label>
             <input type="number" id="rangedBonus" min="0" max="99" value="0"><br>
+            <label>Fighting Style:</label>
+            <select id="rangedFightingStyle">
+                <option value="3">Accurate (+3)</option>
+                <option value="1">Rapid/Longrange (+0)</option>
+            </select><br>
             <label>Potion:</label>
             <select id="rangedPotion">
                 <option value="0,0">None</option>
                 <option value="4,0.10">Ranged Potion (4 + 10%)</option>
             </select><br>
+            <p>Equipment</p>
             <label>Weapon:</label>
             <select id="rangedWeaponBonus">
-                <option value="0">None</option>
                 <option value="0" id="bowAndArrow">Bow & Arrow</option>
                 <option value="0" id="crossbowAndBolt">Crossbow & Bolt</option>
                 <option value="3">Bronze Knife</option>
@@ -204,10 +207,9 @@
                 <option value="42">Rune Javelin</option>
             </select><br>
 
-            <div id="arrowOptions" class="hidden">
+            <div id="arrowOptions">
                 <label>Arrows:</label>
                 <select id="arrowBonus">
-                    <option value="0">None</option>
                     <option value="7">Bronze Arrows</option>
                     <option value="10">Iron Arrows</option>
                     <option value="16">Steel Arrows</option>
@@ -221,7 +223,6 @@
             <div id="boltOptions" class="hidden">
                 <label>Bolts:</label>
                 <select id="boltBonus">
-                    <option value="0">None</option>
                     <option value="10">Bolt</option>
                     <option value="19">Pearl Bolt</option>
                     <option value="28">Opal Bolt</option>
@@ -256,8 +257,8 @@
             </select><br>
             <label>Chaos Gauntlets:</label>
             <select id="chaosGauntlets">
-                <option value="1">No</option>
-                <option value="1.1">Yes (+10% to Bolt Spells)</option>
+                <option value="0">No</option>
+                <option value="3">Yes (+3 to Bolt Spells)</option>
             </select><br>
             <button onclick="calculateMaxHit()">Calculate</button><br>
         </div>
@@ -268,9 +269,7 @@
             ["melee", "ranged", "magic"].forEach(c => {
                 document.getElementById(c + "Options").classList.toggle("hidden", c !== type);
             });
-            // Hide arrowOptions and boltOptions when switching to other combat types
-            document.getElementById("arrowOptions").classList.add("hidden");
-            document.getElementById("boltOptions").classList.add("hidden");
+            calculateFromEquipment();
         }
 
         function calculateMaxHit() {
@@ -311,25 +310,52 @@
                 maxHit = Math.floor(((effectiveStrength * (totalStrengthBonus + 64)) + 320) / 640);
             
             } else if (!document.getElementById("rangedOptions").classList.contains("hidden")) {
-                const level = parseInt(document.getElementById("rangedLevel").value);
-                let bonus;
+                const rangedLevel = parseInt(document.getElementById("rangedLevel").value);
+                const rangedFightingStyle = parseInt(document.getElementById("rangedFightingStyle").value);
+                const weaponSelect = document.getElementById("rangedWeaponBonus");
+                const selectedOption = weaponSelect.options[weaponSelect.selectedIndex];
+
+                let bonus = 0;
                 if (selectedOption.id === "bowAndArrow") {
-                    const bonus = parseInt(document.getElementById("arrowBonus").value);
+                    bonus = parseInt(document.getElementById("arrowBonus").value);
                 } else if (selectedOption.id === "crossbowAndBolt") {
-                    const bonus = parseInt(document.getElementById("boltBonus").value);
+                    bonus = parseInt(document.getElementById("boltBonus").value);
                 } else {
-                    const bonus = parseInt(document.getElementById("rangedWeaponBonus").value)
+                    bonus = parseInt(weaponSelect.value);
                 }
-                const potion = document.getElementById("rangedPotion").value.split(',');
-                const boostedLevel = Math.floor((level + parseInt(potion[0])) * (1 + parseFloat(potion[1])));
-                maxHit = Math.floor(((boostedLevel * (bonus + 64)) + 320) / 640);
+
+                const potionValues = document.getElementById("rangedPotion").value.split(',');
+                const potionFlatBonus = parseInt(potionValues[0]);
+                const potionPercentageBonus = parseFloat(potionValues[1]);
+
+                // Step 1: Apply potion boost (Add flat bonus first, then apply percentage, rounding down)
+                let boostedRanged = rangedLevel + potionFlatBonus;
+                let potionBonus = Math.floor(rangedLevel * potionPercentageBonus);
+                boostedRanged = rangedLevel + potionBonus + potionFlatBonus;
+
+                // Step 2: Add attack style bonus
+                let effectiveRanged = boostedRanged;
+                effectiveRanged += rangedFightingStyle;
+
+                // Step 3: Add +8
+                effectiveRanged += 8;
+
+                // Step 4: Round down again to ensure proper calculation
+                effectiveRanged = Math.floor(effectiveRanged);
+
+                // Step 5: Compute total strength bonus from gear
+                const totalRangedBonus = parseInt(document.getElementById("rangedBonus").value) || 0;
+
+                // Step 6: Compute max hit using the formula
+                maxHit = Math.floor(((effectiveRanged * (totalRangedBonus + 64)) + 320) / 640);
+                
             } else {
                 const spell = parseInt(document.getElementById("spell").value);
                 const gauntletBonus = parseFloat(document.getElementById("chaosGauntlets").value);
 
                 // Only apply Chaos Gauntlet bonus for bolt spells (Wind Bolt, Water Bolt, Earth Bolt, Fire Bolt)
                 if ([9, 10, 11, 12].includes(spell)) {
-                    maxHit = Math.floor(spell * gauntletBonus);
+                    maxHit = Math.floor(spell + gauntletBonus);
                 } else {
                     maxHit = Math.floor(spell);
                 }
@@ -346,16 +372,42 @@
                 const totalStrengthBonus = meleeWeaponBonus + amuletBonus + glovesBonus;
                 document.getElementById("strengthBonus").value = totalStrengthBonus;
             } else {
+                const weaponSelect = document.getElementById("rangedWeaponBonus");
+                const selectedOption = weaponSelect.options[weaponSelect.selectedIndex];
+
+                let totalRangedBonus = 0;
                 if (selectedOption.id === "bowAndArrow") {
-                    const totalRangedBonus = parseInt(document.getElementById("arrowBonus").value);
+                    totalRangedBonus = parseInt(document.getElementById("arrowBonus").value);
                 } else if (selectedOption.id === "crossbowAndBolt") {
-                    const totalRangedBonus = parseInt(document.getElementById("boltBonus").value);
+                    totalRangedBonus = parseInt(document.getElementById("boltBonus").value);
                 } else {
-                    const totalRangedBonus = parseInt(document.getElementById("rangedWeaponBonus").value)
+                    totalRangedBonus = parseInt(document.getElementById("rangedWeaponBonus").value);
                 }
                 document.getElementById("rangedBonus").value = totalRangedBonus;
             }
             calculateMaxHit();
+        }
+
+        // Function to toggle visibility of arrow and bolt options
+        function toggleOptions() {
+            const selectedOption = document.getElementById("rangedWeaponBonus").selectedOptions[0];
+
+            // Show arrow options if Bow & Arrow is selected
+            if (selectedOption.id === "bowAndArrow") {
+                document.getElementById("arrowOptions").classList.remove("hidden");
+                document.getElementById("boltOptions").classList.add("hidden");
+            }
+            // Show bolt options if Crossbow & Bolt is selected
+            else if (selectedOption.id === "crossbowAndBolt") {
+                document.getElementById("arrowOptions").classList.add("hidden");
+                document.getElementById("boltOptions").classList.remove("hidden");
+            }
+            // Hide arrow and bolt options if anything else is selected
+            else {
+                document.getElementById("arrowOptions").classList.add("hidden");
+                document.getElementById("boltOptions").classList.add("hidden");
+            }
+            calculateFromEquipment();
         }
 
         ["strengthLevel", "strengthBonus", "meleeFightingStyle", "meleePotion", "meleePrayer", "rangedLevel", "rangedWeaponBonus", "arrowBonus", "boltBonus", "rangedPotion", "spell", "chaosGauntlets"].forEach(id => {
@@ -367,27 +419,8 @@
             document.getElementById(id).addEventListener("change", calculateFromEquipment);
         });
 
-        // Add event listener to detect changes in the "rangedWeaponBonus" dropdown
+        // Event listener to detect changes in the "rangedWeaponBonus" dropdown
         document.getElementById("rangedWeaponBonus").addEventListener("change", toggleOptions);
-
-        // Function to toggle visibility of arrow and bolt options
-        function toggleOptions() {
-            const selectedOption = document.getElementById("rangedWeaponBonus").selectedOptions[0];
-            
-            // Hide both arrow and bolt options initially
-            document.getElementById("arrowOptions").classList.add("hidden");
-            document.getElementById("boltOptions").classList.add("hidden");
-
-            // Show arrow options if Bow & Arrow is selected
-            if (selectedOption.id === "bowAndArrow") {
-                document.getElementById("arrowOptions").classList.remove("hidden");
-            }
-            // Show bolt options if Crossbow & Bolt is selected
-            else if (selectedOption.id === "crossbowAndBolt") {
-                document.getElementById("arrowOptions").classList.add("hidden");
-                document.getElementById("boltOptions").classList.remove("hidden");
-            }
-        }
     </script>
 </body>
 </html>
